@@ -452,7 +452,7 @@ static int firmware_load(void)
 	}
 
 	/* Set initial CPI resolution. */
-	err = reg_write(OPTICAL_REG_CONFIG1, 0x15);
+	update_cpi(0x15);
 	if (err) {
 		goto error;
 	}
@@ -520,6 +520,32 @@ static int motion_read(void)
 	}
 
 	return err;
+}
+
+static void update_cpi(unsigned int cpi)
+{
+	/* Set resolution with CPI step of 100 cpi
+	 * 0x00: 100 cpi (Minimum cpi)
+	 * 0x01: 200 cpi
+	 * :
+	 * 0x31: 5000 cpi (default cpi)
+	 * :
+	 * 0x77: 12000 cpi (maximum cpi )
+	 */
+
+	/* Convert CPI to register value */
+	uint8_t value = (cpi / 100) - 1;
+	SYS_LOG_INF("CPI: %u, reg value 0x%x", cpi, value);
+
+	if (value > 0x77) {
+		SYS_LOG_WRN("CPI value out of range");
+		return;
+	}
+
+	err = reg_write(OPTICAL_REG_CONFIG1, value);
+	if (err) {
+		module_set_state(MODULE_STATE_ERROR);
+	}
 }
 
 static int init(void)
@@ -738,6 +764,16 @@ static bool event_handler(const struct event_header *eh)
 		return false;
 	}
 
+	if (is_config_event(eh)) {
+		const struct config_event *event = cast_config_event(eh);
+
+		if ((event->cfg_type == CFG_CHANNEL_CPI) &&
+			update_cpi(event->data);
+		}
+
+		return false;
+	}
+
 	if (is_wake_up_event(eh)) {
 		if (atomic_cas(&state, STATE_SUSPENDED, STATE_FETCHING)) {
 			module_set_state(MODULE_STATE_READY);
@@ -772,6 +808,7 @@ static bool event_handler(const struct event_header *eh)
 	return false;
 }
 EVENT_LISTENER(MODULE, event_handler);
+EVENT_SUBSCRIBE(MODULE, config_event);
 EVENT_SUBSCRIBE(MODULE, module_state_event);
 EVENT_SUBSCRIBE(MODULE, wake_up_event);
 EVENT_SUBSCRIBE(MODULE, hid_report_sent_event);
