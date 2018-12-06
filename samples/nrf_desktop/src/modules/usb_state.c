@@ -23,7 +23,6 @@ LOG_MODULE_REGISTER(MODULE, CONFIG_DESKTOP_USB_STATE_LOG_LEVEL);
 #include "hid_event.h"
 #include "usb_event.h"
 
-
 static enum usb_state state;
 
 
@@ -32,6 +31,11 @@ static int get_report(struct usb_setup_packet *setup, s32_t *len, u8_t **data)
 	*len  = hid_report_desc_size;
 	*data = (u8_t *)hid_report_desc;
 
+	return 0;
+}
+
+static int set_report(struct usb_setup_packet *setup, s32_t *len, u8_t **data)
+{
 	return 0;
 }
 
@@ -192,6 +196,7 @@ static int usb_init(void)
 {
 	static const struct hid_ops ops = {
 		.get_report   = get_report,
+		.set_report   = set_report,
 		.int_in_ready = mouse_report_sent_cb,
 		.status_cb    = device_status,
 	};
