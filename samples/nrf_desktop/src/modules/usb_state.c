@@ -22,6 +22,7 @@ LOG_MODULE_REGISTER(MODULE, CONFIG_DESKTOP_USB_STATE_LOG_LEVEL);
 
 #include "hid_event.h"
 #include "usb_event.h"
+#include "config_event.h"
 
 static enum usb_state state;
 
@@ -36,6 +37,18 @@ static int get_report(struct usb_setup_packet *setup, s32_t *len, u8_t **data)
 
 static int set_report(struct usb_setup_packet *setup, s32_t *len, u8_t **data)
 {
+	if ((*data)[0] != REPORT_ID_USER_CONFIG) {
+		LOG_WRN("Unsupported report ID");
+		return 0;
+	}
+
+	struct config_event *event = new_config_event();
+
+	event->id = (*data)[1];
+	memcpy(event->data, &(data[0][2]), sizeof(event->data));
+
+	EVENT_SUBMIT(event);
+
 	return 0;
 }
 

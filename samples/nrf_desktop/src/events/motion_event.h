@@ -28,6 +28,14 @@ struct motion_event {
 
 EVENT_TYPE_DECLARE(motion_event);
 
+struct motion_config_event {
+	struct event_header header;
+
+	u16_t cpi;
+};
+
+EVENT_TYPE_DECLARE(motion_config_event);
+
 #ifdef __cplusplus
 }
 #endif
